@@ -1,9 +1,6 @@
 const { secretbox, randomBytes, box } = require("tweetnacl");
-const bs58 = require("bs58")
 const {
     decodeUTF8,
-    decodeBase64,
-    encodeUTF8,
     encodeBase64,
 } = require("tweetnacl-util");
 
@@ -40,40 +37,11 @@ const encrypt = (
     return encodeBase64(fullMessage);
 }
 
-const decrypt = (
-    secretOrSharedKey,
-    messageWithNonce,
-    key
-) => {
-    const messageWithNonceAsUint8Array = decodeBase64(messageWithNonce);
-    const nonce = messageWithNonceAsUint8Array.slice(0, box.nonceLength);
-    const message = messageWithNonceAsUint8Array.slice(
-        box.nonceLength,
-        messageWithNonce.length
-    );
-
-    const decrypted = key
-        ? box.open(message, nonce, key, secretOrSharedKey)
-        : box.open.after(message, nonce, secretOrSharedKey);
-
-    if (!decrypted) {
-        throw new Error('Could not decrypt message');
-    }
-
-    const base64DecryptedMessage = encodeUTF8(decrypted);
-    return JSON.parse(base64DecryptedMessage);
-};
-
-const keyPair = generateKeyPair()
-console.log("Public: ", bs58.encode(toBuffer(keyPair.publicKey)))
-console.log("Private: ", bs58.encode(toBuffer(keyPair.secretKey)))
-
-
 const obj = { hello: 'world' };
 const pairA = generateKeyPair();
 const pairB = generateKeyPair();
 const sharedA = box.before(pairB.publicKey, pairA.secretKey);
 const sharedB = box.before(pairA.publicKey, pairB.secretKey);
 const encrypted = encrypt(sharedA, obj);
-const decrypted = decrypt(sharedB, encrypted);
-console.log(obj, encrypted, decrypted);
+
+console.log(encrypted, sharedB, toBuffer(sharedB).toString("hex"))
