@@ -17,7 +17,7 @@ import (
 
 type Service interface {
 	EncryptWithPbkdf2(data []byte) ([]byte, error)
-	DecryptWithPbkdf2(data []byte) ([]byte, error)
+	DecryptWithPbkdf2GCM(data []byte) ([]byte, error)
 	DecryptWithPbkdf2CBC(data []byte) ([]byte, error)
 	DecryptBox(key, encryptedData string) ([]byte, error)
 }
@@ -100,7 +100,7 @@ func (s *service) EncryptWithPbkdf2(data []byte) ([]byte, error) {
 	return cipherText, nil
 }
 
-func (s *service) DecryptWithPbkdf2(data []byte) ([]byte, error) {
+func (s *service) DecryptWithPbkdf2GCM(data []byte) ([]byte, error) {
 	salt, data := data[len(data)-32:], data[:len(data)-32]
 
 	key, err := s.deriveKey(salt)
@@ -188,7 +188,7 @@ func main() {
 	// encodeText := base64.StdEncoding.EncodeToString(chipText)
 	// fmt.Println(encodeText)
 
-	decodeBase64, err := base64.StdEncoding.DecodeString("2trYdIPg6CfqTC6If0CzQ/0Nw+UOkJh6TJI6nD/8N7aUhaasnECpFDV1XyTkvhYYHik2U8bTVQomIO1rS53RLw==")
+	decodeBase64, err := base64.StdEncoding.DecodeString("va2QfnKDbj+LCyjQNf4RE1eLDWw5Z/QDR2Y2tzEGzCB3gMyfIZ2QYlzKcWDhVHaUopdta/MuktDtE/n0Tv3Z4w==")
 	if err != nil {
 		log.Fatal(err)
 	}
