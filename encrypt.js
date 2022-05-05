@@ -37,11 +37,11 @@ const encrypt = (
     return encodeBase64(fullMessage);
 }
 
-const obj = { hello: 'world' };
+const obj = { account_id: 'crazyman.testnet' };
 const pairA = generateKeyPair();
 const pairB = generateKeyPair();
 const sharedA = box.before(pairB.publicKey, pairA.secretKey);
 const sharedB = box.before(pairA.publicKey, pairB.secretKey);
 const encrypted = encrypt(sharedA, obj);
 
-console.log(encrypted, sharedB, toBuffer(sharedB).toString("hex"))
+console.log(encrypted, toBuffer(sharedB).toString("hex"))

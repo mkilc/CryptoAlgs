@@ -18,6 +18,7 @@ import (
 type Service interface {
 	EncryptWithPbkdf2(data []byte) ([]byte, error)
 	DecryptWithPbkdf2(data []byte) ([]byte, error)
+	DecryptWithPbkdf2CBC(data []byte) ([]byte, error)
 	DecryptBox(key, encryptedData string) ([]byte, error)
 }
 
@@ -127,14 +128,51 @@ func (s *service) DecryptWithPbkdf2(data []byte) ([]byte, error) {
 	return plainText, nil
 }
 
+func (s *service) DecryptWithPbkdf2CBC(data []byte) ([]byte, error) {
+	salt, data := data[:32], data[32:]
+
+	key, err := s.deriveKey(salt)
+	if err != nil {
+		return nil, err
+	}
+
+	nonce, cipherText := data[:16], data[16:]
+
+	blockCipher, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	mode := cipher.NewCBCDecrypter(blockCipher, nonce)
+	if err != nil {
+		return nil, err
+	}
+	mode.CryptBlocks(cipherText, cipherText)
+
+	cipherText, _ = s.unpad(cipherText, aes.BlockSize)
+
+	return []byte(cipherText), nil
+}
+
 func (s *service) deriveKey(salt []byte) ([]byte, error) {
 	key := pbkdf2.Key(s.secret, salt, s.iter, 32, sha256.New)
 
 	return key, nil
 }
 
+func (s *service) unpad(padded []byte, size int) ([]byte, error) {
+	if len(padded)%size != 0 {
+		return nil, errors.New("Padded value wasn't in correct size.")
+	}
+
+	bufLen := len(padded) - int(padded[len(padded)-1])
+	buf := make([]byte, bufLen)
+	copy(buf, padded[:bufLen])
+	return buf, nil
+}
+
 func main() {
-	sec := "asdasdasdasd"
+	sec := "asd123"
 	iter := 100
 
 	cryptoSvc, err := NewCryptoService(&sec, &iter)
@@ -142,20 +180,20 @@ func main() {
 		log.Fatal(err)
 	}
 
-	chipText, err := cryptoSvc.EncryptWithPbkdf2([]byte("aaaaaaa"))
+	// chipText, err := cryptoSvc.EncryptWithPbkdf2([]byte("aaaaaaa"))
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// encodeText := base64.StdEncoding.EncodeToString(chipText)
+	// fmt.Println(encodeText)
+
+	decodeBase64, err := base64.StdEncoding.DecodeString("2trYdIPg6CfqTC6If0CzQ/0Nw+UOkJh6TJI6nD/8N7aUhaasnECpFDV1XyTkvhYYHik2U8bTVQomIO1rS53RLw==")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	encodeText := base64.StdEncoding.EncodeToString(chipText)
-	fmt.Println(encodeText)
-
-	decodeBase64, err := base64.StdEncoding.DecodeString(encodeText)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	decodeText, err := cryptoSvc.DecryptWithPbkdf2(decodeBase64)
+	decodeText, err := cryptoSvc.DecryptWithPbkdf2CBC(decodeBase64)
 	if err != nil {
 		log.Fatal(err)
 	}

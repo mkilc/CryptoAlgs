@@ -4,8 +4,9 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"golang.org/x/crypto/nacl/box"
 	"os"
+
+	"golang.org/x/crypto/nacl/box"
 )
 
 /*{ hello: 'world' } AXdnNAip25GX27BZ0ANmEGo4/+ESddIMtqaTeQRZtBO36zv63rXwTV63WpMopoAndL8OBDTmZ4eW { hello: 'world' }
