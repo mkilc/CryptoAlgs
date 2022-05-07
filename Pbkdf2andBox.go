@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/ed25519"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -20,12 +21,15 @@ type Service interface {
 	DecryptWithPbkdf2GCM(data []byte) ([]byte, error)
 	DecryptWithPbkdf2CBC(data []byte) ([]byte, error)
 	DecryptBox(key, encryptedData string) ([]byte, error)
+	OpenSignedKey(signedMessage []byte, publicKey *[32]byte, accout_id string) bool
 }
 
 type service struct {
 	secret []byte
 	iter   int
 }
+
+const Overhead = 64
 
 func NewCryptoService(secret *string, iter *int) (Service, error) {
 	if secret == nil {
@@ -152,6 +156,18 @@ func (s *service) DecryptWithPbkdf2CBC(data []byte) ([]byte, error) {
 	cipherText, _ = s.unpad(cipherText, aes.BlockSize)
 
 	return []byte(cipherText), nil
+}
+
+func (s *service) OpenSignedKey(signedMessage []byte, publicKey *[32]byte, accout_id string) bool {
+	if len(signedMessage) < Overhead {
+		return false
+	}
+
+	if !ed25519.Verify(ed25519.PublicKey((*publicKey)[:]), []byte(accout_id), signedMessage) {
+		return false
+	}
+
+	return true
 }
 
 func (s *service) deriveKey(salt []byte) ([]byte, error) {

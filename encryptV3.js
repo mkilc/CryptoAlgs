@@ -19,7 +19,7 @@ const toBuffer = (arr) => {
 }
 
 // 3by8kdJoJHu7uUkKfoaLJ2Dp1q1TigeWMGpHu9UGXsWdREqPcshCM223kWadmrMKpV9AsWG5wL9F9hZzjHSRFXud
-const secret = "3by8kdJoJHu7uUkKfoaLJ2Dp1q1TigeWMGpHu9UGXsWdREqPcshCM223kWadmrMKpV9AsWG5wL9F9hZzjHSRFXud"
+const secret = "5yAym4cAJcns6KysnoXSedoCWALpn2gJsg4X21GZiQQsXDoiuEN8RUtrzrZL5he8L2XkKhL2MsKZK76BvDixorAN"
 const keyPair = tweetnacl.sign.keyPair.fromSecretKey(borsh.baseDecode(secret));
 console.log(keyPair);
 const signature = tweetnacl.sign.detached(decodeUTF8("aaaddd"), keyPair.secretKey)
