@@ -17,11 +17,11 @@ import (
 )
 
 type Service interface {
-	EncryptWithPbkdf2(data []byte) ([]byte, error)
-	DecryptWithPbkdf2GCM(data []byte) ([]byte, error)
+	EncryptWithPbkdf2GMC(text string) ([]byte, error)
+	DecryptWithPbkdf2GMC(encryptedData string) ([]byte, error)
 	DecryptWithPbkdf2CBC(data []byte) ([]byte, error)
 	DecryptBox(key, encryptedData string) ([]byte, error)
-	OpenSignedKey(signedMessage []byte, publicKey *[32]byte, accout_id string) bool
+	OpenSignedKey(signedMessage string, publicKey string, accout_id string) bool
 }
 
 type service struct {
@@ -71,7 +71,7 @@ func (s *service) DecryptBox(key, encryptedData string) ([]byte, error) {
 	return dec, nil
 }
 
-func (s *service) EncryptWithPbkdf2(data []byte) ([]byte, error) {
+func (s *service) EncryptWithPbkdf2GMC(text string) ([]byte, error) {
 	salt := make([]byte, 32)
 	if _, err := rand.Read(salt); err != nil {
 		return nil, err
@@ -97,15 +97,20 @@ func (s *service) EncryptWithPbkdf2(data []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	cipherText := gmc.Seal(nonce, nonce, data, nil)
+	cipherText := gmc.Seal(nonce, nonce, []byte(text), nil)
 
 	cipherText = append(cipherText, salt...)
 
 	return cipherText, nil
 }
 
-func (s *service) DecryptWithPbkdf2GCM(data []byte) ([]byte, error) {
-	salt, data := data[len(data)-32:], data[:len(data)-32]
+func (s *service) DecryptWithPbkdf2GMC(encryptedData string) ([]byte, error) {
+	decodeData, err := base64.StdEncoding.DecodeString(encryptedData)
+	if err != nil {
+		return nil, err
+	}
+
+	salt, data := decodeData[len(decodeData)-32:], decodeData[:len(decodeData)-32]
 
 	key, err := s.deriveKey(salt)
 	if err != nil {
@@ -158,12 +163,22 @@ func (s *service) DecryptWithPbkdf2CBC(data []byte) ([]byte, error) {
 	return []byte(cipherText), nil
 }
 
-func (s *service) OpenSignedKey(signedMessage []byte, publicKey *[32]byte, accout_id string) bool {
+func (s *service) OpenSignedKey(signedMessage string, publicKey string, accout_id string) bool {
+	decodeSignature, err := base64.StdEncoding.DecodeString(signedMessage)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var decodePubKey [32]byte
+	if n, err := base64.StdEncoding.Decode(decodePubKey[:], []byte(publicKey)); err != nil || n != len(decodePubKey) {
+		log.Fatal(err)
+	}
+
 	if len(signedMessage) < Overhead {
 		return false
 	}
 
-	if !ed25519.Verify(ed25519.PublicKey((*publicKey)[:]), []byte(accout_id), signedMessage) {
+	if !ed25519.Verify(ed25519.PublicKey((decodePubKey)[:]), []byte(accout_id), decodeSignature) {
 		return false
 	}
 
@@ -196,23 +211,28 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// chipText, err := cryptoSvc.EncryptWithPbkdf2([]byte("aaaaaaa"))
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-
-	// encodeText := base64.StdEncoding.EncodeToString(chipText)
-	// fmt.Println(encodeText)
-
-	decodeBase64, err := base64.StdEncoding.DecodeString("va2QfnKDbj+LCyjQNf4RE1eLDWw5Z/QDR2Y2tzEGzCB3gMyfIZ2QYlzKcWDhVHaUopdta/MuktDtE/n0Tv3Z4w==")
+	chipText, err := cryptoSvc.EncryptWithPbkdf2GMC("aaaaaaa")
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	decodeText, err := cryptoSvc.DecryptWithPbkdf2CBC(decodeBase64)
+	encodeText := base64.StdEncoding.EncodeToString(chipText)
+	fmt.Println(encodeText)
+
+	// decodeBase64, err := base64.StdEncoding.DecodeString("va2QfnKDbj+LCyjQNf4RE1eLDWw5Z/QDR2Y2tzEGzCB3gMyfIZ2QYlzKcWDhVHaUopdta/MuktDtE/n0Tv3Z4w==")
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	decodeText, err := cryptoSvc.DecryptWithPbkdf2GMC(encodeText)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	fmt.Println(string(decodeText))
+
+	// signature := "tKnVEqeeJeVCfMhDPp+pe1xgWoFArlY9O+TNcPqlpsal3c93eilB9t9E9RUds8vTumWttplTXwBmHi5UQ8xtBQ=="
+	// pubKey := "VG3rn0NSTAGm7xisZT03vuxkSKJtN3A3EzRLM/J9sHQ="
+
+	// fmt.Println(cryptoSvc.OpenSignedKey(signature, pubKey, "aaaddd"))
 }
