@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"unsafe"
 
 	"golang.org/x/crypto/nacl/box"
 	"golang.org/x/crypto/pbkdf2"
@@ -182,6 +183,12 @@ func (s *service) OpenSignedKey(signedMessage string, publicKey string, accout_i
 		return false
 	}
 
+	// ret, out := sliceForAppend(out, len(signedMessage)-Overhead)
+	// if AnyOverlap(out, signedMessage) {
+	// 	panic("nacl: invalid buffer overlap")
+	// }
+	// copy(out, []byte("accout_id"))
+
 	return true
 }
 
@@ -200,6 +207,23 @@ func (s *service) unpad(padded []byte, size int) ([]byte, error) {
 	buf := make([]byte, bufLen)
 	copy(buf, padded[:bufLen])
 	return buf, nil
+}
+
+func (s *service) sliceForAppend(in []byte, n int) (head, tail []byte) {
+	if total := len(in) + n; cap(in) >= total {
+		head = in[:total]
+	} else {
+		head = make([]byte, total)
+		copy(head, in)
+	}
+	tail = head[len(in):]
+	return
+}
+
+func (s *service) anyOverlap(x, y []byte) bool {
+	return len(x) > 0 && len(y) > 0 &&
+		uintptr(unsafe.Pointer(&x[0])) <= uintptr(unsafe.Pointer(&y[len(y)-1])) &&
+		uintptr(unsafe.Pointer(&y[0])) <= uintptr(unsafe.Pointer(&x[len(x)-1]))
 }
 
 func main() {
