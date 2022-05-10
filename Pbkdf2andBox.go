@@ -13,6 +13,7 @@ import (
 	"math/rand"
 	"unsafe"
 
+	"github.com/btcsuite/btcutil/base58"
 	"golang.org/x/crypto/nacl/box"
 	"golang.org/x/crypto/pbkdf2"
 )
@@ -170,10 +171,12 @@ func (s *service) OpenSignedKey(signedMessage string, publicKey string, accout_i
 		log.Fatal(err)
 	}
 
-	var decodePubKey [32]byte
-	if n, err := base64.StdEncoding.Decode(decodePubKey[:], []byte(publicKey)); err != nil || n != len(decodePubKey) {
-		log.Fatal(err)
-	}
+	// var decodePubKey [32]byte
+	// if n, err := base64.StdEncoding.Decode(decodePubKey[:], []byte(publicKey)); err != nil || n != len(decodePubKey) {
+	// 	log.Fatal(err)
+	// }
+
+	decodePubKey := base58.Decode(publicKey)
 
 	if len(signedMessage) < Overhead {
 		return false
